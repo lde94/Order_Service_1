@@ -6,8 +6,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
-@Table(name = "order")
+@Table(name = "orderTable")
 @Data
 @Builder
 @NoArgsConstructor
@@ -20,4 +23,16 @@ public class Order {
 
     @Column
     private Integer userId;
+
+    @Column
+    private OrderStatus orderStatus;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItem> items = new ArrayList<>();
+
+    private enum OrderStatus {
+        COMPLETED,
+        ONGOING;
+    }
+
 }
