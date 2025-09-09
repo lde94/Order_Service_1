@@ -21,16 +21,17 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column
-    private Integer userId;
+    @Column(nullable = false)
+    private Long userId;
 
-    @Column
+    @Enumerated(EnumType.STRING) //Sparar enum som string i databasen istället för index
+    @Column(nullable = false)
     private OrderStatus orderStatus;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderItem> items = new ArrayList<>();
+//    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<OrderItem> items = new ArrayList<>();
 
-    private enum OrderStatus {
+    public enum OrderStatus {
         COMPLETED,
         ONGOING;
     }

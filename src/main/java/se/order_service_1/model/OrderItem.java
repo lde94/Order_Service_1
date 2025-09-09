@@ -18,10 +18,10 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column
+    @Column(nullable = false)
     private Long productId;
 
-    @Column
+    @Column(nullable = false)
     private Integer quantity;
 
     @ManyToOne(fetch = FetchType.EAGER)

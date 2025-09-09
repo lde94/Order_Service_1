@@ -23,40 +23,41 @@ public class OrderService {
         this.orderItemRepository = orderItemRepository;
     }
 
-    public void addOrderItem(Long orderId, OrderItem newItem, int quantity) {
+    public void addOrderItem(Long orderId, Long productId, int quantity) {
         log.debug("addOrderItem - försök lägga till produkt {} (qty={}) till orderId={}",
-                newItem.getProductId(), quantity, orderId);
+                productId, quantity, orderId);
 
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> {
                     log.error("addOrderItem - Order med id={} hittades inte", orderId);
-                    return new RuntimeException("Order not found");
+                    return new RuntimeException("Order not found"); //TODO: byt till orderNotFoundException
                 });
 
-        List<OrderItem> items = order.getItems();
+        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
         log.debug("addOrderItem - orderId={} har {} items före uppdatering", orderId, items.size());
 
         for(OrderItem item : items){
 
-            if(item.getProductId().equals(newItem.getProductId())){
+            if(item.getProductId().equals(productId)){
                 log.info("addOrderItem - produkt {} finns redan i orderId={}, uppdaterar qty {} -> {}",
-                        newItem.getProductId(), orderId, item.getQuantity(), item.getQuantity() + quantity);
+                        productId, orderId, item.getQuantity(), item.getQuantity() + quantity);
 
                 item.setQuantity(item.getQuantity() + quantity);
-                orderRepository.save(order);
+                orderItemRepository.save(item);
                 log.debug("addOrderItem - orderId={} sparad efter uppdatering", orderId);
                 return;
             }
         }
 
+        OrderItem newItem = new OrderItem();
+        newItem.setProductId(productId);
         newItem.setOrder(order);
         newItem.setQuantity(quantity);
-        items.add(newItem);
+        orderItemRepository.save(newItem);
 
         log.info("addOrderItem - produkt {} tillagd i orderId={} med qty={}",
                 newItem.getProductId(), orderId, quantity);
 
-        orderRepository.save(order);
         log.debug("addOrderItem - orderId={} sparad med nytt item, total items={}", orderId, items.size());
 
     }
@@ -88,10 +89,37 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> {
                     log.warn("getOrderById - ingen order hittades med id={}", orderId);
-                    return new RuntimeException("Order med ID " + orderId + " finns inte");
+                    return new RuntimeException("Order med ID " + orderId + " finns inte"); //TODO: byt till orderNotFoundException
                 });
         log.debug("getOrderById - hittade order={}", orderId);
         return order;
+    }
+
+    public List<Order> getOrdersByUser(Long userId) {
+        log.debug("getOrdersByUser - försök hämta alla ordrar från använder med id={}", userId);
+        List <Order> orders = orderRepository.findOrdersByUserId(userId);
+        return orders;
+    }
+
+    public Order updateOrder(Long orderID, Long productID, Integer quantity) {
+        //TODO: Skapa update funkionalitet
+        return null;
+    }
+
+    public void finalizeOrder(Long orderId) {
+        Order order = getOrderById(orderId);
+        order.setOrderStatus(Order.OrderStatus.COMPLETED);
+        orderRepository.save(order);
+        //TODO: uppdatera ProductService stockQuantity och kolla att stockQuantity inte går under 0
+    }
+
+    // Temporär funktion för testning
+    public Order createOrder(Long userId){
+        Order order = Order.builder()
+                .userId(userId)
+                .orderStatus(Order.OrderStatus.ONGOING)
+                .build();
+        return orderRepository.save(order);
     }
 
 }
