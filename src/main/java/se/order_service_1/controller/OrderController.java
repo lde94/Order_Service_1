@@ -72,8 +72,6 @@ public class OrderController {
 
     @PutMapping("/update")
     public ResponseEntity<OrderResponse> updateOrder(@RequestBody OrderRequest orderRequest) {
-        //TODO update only if in ongoing phase
-        //TODO update quantity for an OrderItem
         Order order = orderService.getOrderById(orderRequest.getOrderId());
         if (order.getOrderStatus() == Order.OrderStatus.COMPLETED) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();

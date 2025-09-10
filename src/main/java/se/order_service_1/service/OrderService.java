@@ -2,7 +2,6 @@ package se.order_service_1.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import se.order_service_1.model.OrderItem;
 import se.order_service_1.model.Order;
@@ -79,7 +78,6 @@ public class OrderService {
         if(orderRepository.existsById(orderId)){
             List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
             orderItemRepository.deleteAll(items);
-//            orderItemRepository.deleteAllByOrderId(orderId);
             orderRepository.deleteById(orderId);
             log.info("deleteOrder - order raderad med id={}", orderId);
         } else {
@@ -105,7 +103,6 @@ public class OrderService {
     }
 
     public Order updateOrder(Long orderID, Long productID, Integer quantity) {
-        //TODO: Skapa update funkionalitet
         Order order = getOrderById(orderID);
         List<OrderItem> orderItems = getOrderItems(orderID);
         for(OrderItem orderItem : orderItems){
