@@ -74,13 +74,23 @@ public class OrderController {
     public ResponseEntity<OrderResponse> updateOrder(@RequestBody OrderRequest orderRequest) {
         //TODO update only if in ongoing phase
         //TODO update quantity for an OrderItem
-        return ResponseEntity.status(HttpStatus.I_AM_A_TEAPOT).body(null);
+        Order order = orderService.getOrderById(orderRequest.getOrderId());
+        if (order.getOrderStatus() == Order.OrderStatus.COMPLETED) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+
+        order = orderService.updateOrder(orderRequest.getOrderId(), orderRequest.getProductId(), orderRequest.getQuantity());
+        return ResponseEntity.ok(createOrderResponse(order));
     }
 
-    @DeleteMapping("/cancel")
-    public ResponseEntity<OrderResponse> cancelOrder(@RequestBody OrderRequest orderRequest) {
-        //TODO delete order only if still in ongoing phase
-        return ResponseEntity.status(HttpStatus.I_AM_A_TEAPOT).body(null);
+    @DeleteMapping("/cancel/{orderId}")
+    public ResponseEntity<String> cancelOrder(@PathVariable Long orderId) {
+        Order order = orderService.getOrderById(orderId);
+        if (order.getOrderStatus() == Order.OrderStatus.COMPLETED) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+        orderService.deleteOrder(orderId);
+        return ResponseEntity.ok("Order has been cancelled");
     }
 
     private OrderResponse createOrderResponse(Order order) {

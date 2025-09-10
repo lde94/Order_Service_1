@@ -77,6 +77,9 @@ public class OrderService {
     public void deleteOrder(Long orderId) {
         log.info("deleteOrder - försök radera order med id={}", orderId);
         if(orderRepository.existsById(orderId)){
+            List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+            orderItemRepository.deleteAll(items);
+//            orderItemRepository.deleteAllByOrderId(orderId);
             orderRepository.deleteById(orderId);
             log.info("deleteOrder - order raderad med id={}", orderId);
         } else {
@@ -103,7 +106,17 @@ public class OrderService {
 
     public Order updateOrder(Long orderID, Long productID, Integer quantity) {
         //TODO: Skapa update funkionalitet
-        return null;
+        Order order = getOrderById(orderID);
+        List<OrderItem> orderItems = getOrderItems(orderID);
+        for(OrderItem orderItem : orderItems){
+            if(orderItem.getProductId().equals(productID)){
+                orderItem.setQuantity(quantity);
+                orderItemRepository.save(orderItem);
+                return order;
+            }
+        }
+        addOrderItem(orderID, productID, quantity);
+        return order;
     }
 
     public void finalizeOrder(Long orderId) {
