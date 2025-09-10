@@ -3,6 +3,7 @@ package se.order_service_1.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import se.order_service_1.exception.OrderCompletedException;
 import se.order_service_1.exception.OrderNotFoundException;
 import se.order_service_1.model.OrderItem;
 import se.order_service_1.model.Order;
@@ -32,6 +33,8 @@ public class OrderService {
                     log.error("addOrderItem - Order med id={} hittades inte", orderId);
                     return new RuntimeException("Order not found"); //TODO: byt till orderNotFoundException
                 });
+
+        checkNotCompleted(order);
 
         List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
         log.debug("addOrderItem - orderId={} har {} items före uppdatering", orderId, items.size());
@@ -77,6 +80,8 @@ public class OrderService {
     public void deleteOrder(Long orderId) {
         log.info("deleteOrder - försök radera order med id={}", orderId);
         if(orderRepository.existsById(orderId)){
+            Order order = getOrderById(orderId);
+            checkNotCompleted(order);
             List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
             orderItemRepository.deleteAll(items);
             orderRepository.deleteById(orderId);
@@ -105,6 +110,7 @@ public class OrderService {
 
     public Order updateOrder(Long orderID, Long productID, Integer quantity) {
         Order order = getOrderById(orderID);
+        checkNotCompleted(order);
         List<OrderItem> orderItems = getOrderItems(orderID);
         for(OrderItem orderItem : orderItems){
             if(orderItem.getProductId().equals(productID)){
@@ -119,6 +125,7 @@ public class OrderService {
 
     public void finalizeOrder(Long orderId) {
         Order order = getOrderById(orderId);
+        checkNotCompleted(order);
         order.setOrderStatus(Order.OrderStatus.COMPLETED);
         orderRepository.save(order);
         //TODO: uppdatera ProductService stockQuantity och kolla att stockQuantity inte går under 0
@@ -131,6 +138,12 @@ public class OrderService {
                 .orderStatus(Order.OrderStatus.ONGOING)
                 .build();
         return orderRepository.save(order);
+    }
+
+    private void checkNotCompleted(Order order) {
+        if (order.getOrderStatus() == Order.OrderStatus.COMPLETED) {
+            throw new OrderCompletedException("Order is completed and can not be changed or cancelled");
+        }
     }
 
 }

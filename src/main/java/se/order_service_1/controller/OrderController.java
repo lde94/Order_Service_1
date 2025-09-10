@@ -1,7 +1,6 @@
 package se.order_service_1.controller;
 
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -51,42 +50,25 @@ public class OrderController {
 
     @PostMapping("/addToOrder")
     public ResponseEntity<OrderResponse> addToOrder(@RequestBody OrderRequest orderRequest) {
-        //TODO vad händer om en order aldrig skapats/ när skapas en ny order??? Måste ha en user att koppla med först
-        Order order = orderService.getOrderById(orderRequest.getOrderId());
-        if (order.getOrderStatus() == Order.OrderStatus.COMPLETED) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build(); //Heja heja Alexander! :D
-        }
         orderService.addOrderItem(orderRequest.getOrderId(), orderRequest.getProductId(), orderRequest.getQuantity());
+        Order order = orderService.getOrderById(orderRequest.getOrderId());
         return ResponseEntity.status(HttpStatus.CREATED).body(createOrderResponse(order));
     }
 
     @PutMapping("/finalizeOrder/{orderId}")
     public ResponseEntity<String> finalizeOrder(@PathVariable Long orderId) {
-        Order order = orderService.getOrderById(orderId);
-        if (order.getOrderStatus() == Order.OrderStatus.COMPLETED) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
         orderService.finalizeOrder(orderId);
         return ResponseEntity.ok("Order has been finalized");
     }
 
     @PutMapping("/update")
     public ResponseEntity<OrderResponse> updateOrder(@RequestBody OrderRequest orderRequest) {
-        Order order = orderService.getOrderById(orderRequest.getOrderId());
-        if (order.getOrderStatus() == Order.OrderStatus.COMPLETED) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
-
-        order = orderService.updateOrder(orderRequest.getOrderId(), orderRequest.getProductId(), orderRequest.getQuantity());
+        Order order = orderService.updateOrder(orderRequest.getOrderId(), orderRequest.getProductId(), orderRequest.getQuantity());
         return ResponseEntity.ok(createOrderResponse(order));
     }
 
     @DeleteMapping("/cancel/{orderId}")
     public ResponseEntity<String> cancelOrder(@PathVariable Long orderId) {
-        Order order = orderService.getOrderById(orderId);
-        if (order.getOrderStatus() == Order.OrderStatus.COMPLETED) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
         orderService.deleteOrder(orderId);
         return ResponseEntity.ok("Order has been cancelled");
     }

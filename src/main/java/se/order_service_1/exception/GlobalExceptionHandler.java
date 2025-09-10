@@ -116,6 +116,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles OrderCompletedException by returning a 404 Not Found response.
+     *
+     * @param ex      the exception thrown when trying to change a completed order
+     * @param request the web request that caused the exception
+     * @return a ResponseEntity containing an ErrorResponse with 409 status
+     */
+    @ExceptionHandler(OrderCompletedException.class)
+    public ResponseEntity<ErrorResponse> handleAOrderCompletedException(Exception ex, WebRequest request) {
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+        );
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+
+    /**
      * Catches all other exceptions and returns a 500 Internal Server Error response.
      *
      * @param ex      the unexpected exception
