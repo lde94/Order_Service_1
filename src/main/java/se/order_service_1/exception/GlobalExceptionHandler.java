@@ -97,6 +97,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles OrderNotFoundException by returning a 404 Not Found response.
+     *
+     * @param ex      the exception thrown when a requested order is not found
+     * @param request the web request that caused the exception
+     * @return a ResponseEntity containing an ErrorResponse with 404 status
+     */
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAOrderNotFoundException(Exception ex, WebRequest request) {
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+        );
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    /**
      * Catches all other exceptions and returns a 500 Internal Server Error response.
      *
      * @param ex      the unexpected exception

@@ -3,6 +3,7 @@ package se.order_service_1.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import se.order_service_1.exception.OrderNotFoundException;
 import se.order_service_1.model.OrderItem;
 import se.order_service_1.model.Order;
 import se.order_service_1.repository.OrderItemRepository;
@@ -90,7 +91,7 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> {
                     log.warn("getOrderById - ingen order hittades med id={}", orderId);
-                    return new RuntimeException("Order med ID " + orderId + " finns inte"); //TODO: byt till orderNotFoundException
+                    return new OrderNotFoundException("Order med ID " + orderId + " finns inte");
                 });
         log.debug("getOrderById - hittade order={}", orderId);
         return order;
