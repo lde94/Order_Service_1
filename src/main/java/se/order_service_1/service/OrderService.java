@@ -2,14 +2,25 @@ package se.order_service_1.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import se.order_service_1.dto.PlaceOrderRequest;
+import se.order_service_1.exception.NotEnoughStockException;
 import se.order_service_1.exception.OrderCompletedException;
 import se.order_service_1.exception.OrderNotFoundException;
+import se.order_service_1.exception.ProductNotFoundException;
 import se.order_service_1.model.OrderItem;
 import se.order_service_1.model.Order;
 import se.order_service_1.repository.OrderItemRepository;
 import se.order_service_1.repository.OrderRepository;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -18,10 +29,12 @@ public class OrderService {
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
+    private final RestTemplate restTemplate;
 
-    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository) {
+    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository, RestTemplate restTemplate) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
+        this.restTemplate = restTemplate;
     }
 
     public void addOrderItem(Long orderId, Long productId, int quantity) {
@@ -126,9 +139,29 @@ public class OrderService {
     public void finalizeOrder(Long orderId) {
         Order order = getOrderById(orderId);
         checkNotCompleted(order);
+
+        //TODO: uppdatera ProductService stockQuantity
+        List<PlaceOrderRequest.ProductChange> productChangeList = new ArrayList<>();
+        PlaceOrderRequest.ProductChange productChange;
+        for(OrderItem orderItem : orderItemRepository.findByOrderId(orderId)){
+            productChange = PlaceOrderRequest.ProductChange.builder()
+                    .productId(orderItem.getProductId())
+                    .inventoryChange(-orderItem.getQuantity())
+                    .build();
+            productChangeList.add(productChange);
+        }
+        PlaceOrderRequest placeOrderRequest = new PlaceOrderRequest(productChangeList);
+        String url = "http://localhost:8080/product/inventoryManager";
+        String uri = "/product/inventoryManager";
+
+        //Check send change to product-service and see if it can be changed
+
+        RestTemplate restTemplate = new RestTemplate();
+        //TODO Handle exception thrown from 400 status code
+        ResponseEntity<String> response = restTemplate.postForEntity(url, placeOrderRequest, String.class);
+
         order.setOrderStatus(Order.OrderStatus.COMPLETED);
         orderRepository.save(order);
-        //TODO: uppdatera ProductService stockQuantity och kolla att stockQuantity inte går under 0
     }
 
     // Temporär funktion för testning

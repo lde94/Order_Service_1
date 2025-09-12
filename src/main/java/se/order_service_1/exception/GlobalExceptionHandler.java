@@ -1,10 +1,12 @@
 package se.order_service_1.exception;
 
+import lombok.Data;
 import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.WebRequest;
 
 import java.time.LocalDateTime;
@@ -16,6 +18,7 @@ public class GlobalExceptionHandler {
      * Simple DTO for error response body sent to clients on exceptions.
      * Automatically serialized to JSON with fields: timestamp, status, error, message, path.
      */
+    @Data
     public static class ErrorResponse {
         private LocalDateTime timestamp;
         private int status;
@@ -154,4 +157,35 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(NotEnoughStockException.class)
+    public ResponseEntity<ErrorResponse> handleCategoryNotEmpty(NotEnoughStockException ex, WebRequest request) {
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase(),
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+        );
+        return new ResponseEntity<>(error, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCategoryNotEmpty(ProductNotFoundException ex, WebRequest request) {
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(HttpClientErrorException.class)
+    public ResponseEntity<ErrorResponse> handleCategoryNotEmpty(HttpClientErrorException ex, WebRequest request) {
+        ErrorResponse error = ex.getResponseBodyAs(ErrorResponse.class);
+        assert error != null;
+        error.setPath(request.getDescription(false).replace("uri=", ""));
+        return new ResponseEntity<>(error, HttpStatus.valueOf(error.getStatus()));
+    }
 }
