@@ -138,25 +138,7 @@ public class OrderService {
         Order order = getOrderById(orderId);
         checkNotCompleted(order);
 
-        //TODO: uppdatera ProductService stockQuantity
-        List<PlaceOrderRequest.ProductChange> productChangeList = new ArrayList<>();
-        PlaceOrderRequest.ProductChange productChange;
-        for(OrderItem orderItem : orderItemRepository.findByOrderId(orderId)){
-            productChange = PlaceOrderRequest.ProductChange.builder()
-                    .productId(orderItem.getProductId())
-                    .inventoryChange(-orderItem.getQuantity())
-                    .build();
-            productChangeList.add(productChange);
-        }
-        PlaceOrderRequest placeOrderRequest = new PlaceOrderRequest(productChangeList);
-        String url = "http://localhost:8080/product/inventoryManager";
-        String uri = "/product/inventoryManager";
-
-        //Check send change to product-service and see if it can be changed
-
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<String> response = restTemplate.postForEntity(url, placeOrderRequest, String.class);
-
+        updateProductQuantities(orderId);
 
         // Beräkna ordersumma
         Double totalBelopp = calculateOrderTotal(orderId);
@@ -174,6 +156,25 @@ public class OrderService {
         log.info("finalizeOrder - order {} slutförd med transaktions-ID: {}", orderId, transactionId);
 
         return transactionId;
+    }
+
+    //Testa att uppdatera Product_Services inventory
+    //If failed throws exception
+    private void updateProductQuantities(Long orderId) {
+        List<PlaceOrderRequest.ProductChange> productChangeList = new ArrayList<>();
+        PlaceOrderRequest.ProductChange productChange;
+        for(OrderItem orderItem : orderItemRepository.findByOrderId(orderId)){
+            productChange = PlaceOrderRequest.ProductChange.builder()
+                    .productId(orderItem.getProductId())
+                    .inventoryChange(-orderItem.getQuantity())
+                    .build();
+            productChangeList.add(productChange);
+        }
+        PlaceOrderRequest placeOrderRequest = new PlaceOrderRequest(productChangeList);
+        String url = "http://localhost:8080/product/inventoryManager";
+
+        //Send change to product-service and see if it can be changed
+        ResponseEntity<String> response = restTemplate.postForEntity(url, placeOrderRequest, String.class);
     }
 
     /**
