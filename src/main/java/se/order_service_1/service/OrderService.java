@@ -1,5 +1,6 @@
 package se.order_service_1.service;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final PaymentService paymentService;
     private final RestTemplate restTemplate;
+    private final String ProductServiceAddress = Dotenv.load().get("PRODUCT_SERVICE_ADDRESS");
 
     public void addOrderItem(Long orderId, Long productId, int quantity) {
         log.debug("addOrderItem - försök lägga till produkt {} (qty={}) till orderId={}",
@@ -171,7 +173,7 @@ public class OrderService {
             productChangeList.add(productChange);
         }
         PlaceOrderRequest placeOrderRequest = new PlaceOrderRequest(productChangeList);
-        String url = "http://localhost:8080/product/inventoryManager";
+        String url = ProductServiceAddress + "/product/inventoryManager";
 
         //Send change to product-service and see if it can be changed
         ResponseEntity<String> response = restTemplate.postForEntity(url, placeOrderRequest, String.class);
