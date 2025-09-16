@@ -31,6 +31,7 @@ public class OrderController {
         return ResponseEntity.ok(orderResponse);
     }
 
+    //TODO skapa en endpoint som returnerar alla ordrar efter ett visst DateTime
     @Operation(summary = "Get order history", description = "Get order history for a specific user by id")
     @GetMapping("/orderHistory/{userId}")
     public ResponseEntity<List<OrderResponse>> getOrderHistory(@PathVariable Long userId) {
@@ -62,6 +63,7 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createOrderResponse(order));
     }
 
+    //TODO när en order färdigställs så sparas datum och tid i Order
     @Operation(
             summary = "Finalize order",
             description = "Slutför en pågående order genom att behandla betalning och ändra orderstatus"

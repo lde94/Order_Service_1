@@ -27,7 +27,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final PaymentService paymentService;
     private final RestTemplate restTemplate;
-    private final String ProductServiceAddress = Dotenv.load().get("PRODUCT_SERVICE_ADDRESS");
+    private final String productServiceAddress = Dotenv.load().get("PRODUCT_SERVICE_ADDRESS");
 
     public void addOrderItem(Long orderId, Long productId, int quantity) {
         log.debug("addOrderItem - försök lägga till produkt {} (qty={}) till orderId={}",
@@ -173,7 +173,7 @@ public class OrderService {
             productChangeList.add(productChange);
         }
         PlaceOrderRequest placeOrderRequest = new PlaceOrderRequest(productChangeList);
-        String url = ProductServiceAddress + "/product/inventoryManager";
+        String url = productServiceAddress + "/product/inventoryManager";
 
         //Send change to product-service and see if it can be changed
         ResponseEntity<String> response = restTemplate.postForEntity(url, placeOrderRequest, String.class);
