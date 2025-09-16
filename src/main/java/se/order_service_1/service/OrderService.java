@@ -1,8 +1,14 @@
 package se.order_service_1.service;
 
+import io.github.cdimascio.dotenv.Dotenv;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import se.order_service_1.dto.PlaceOrderRequest;
+import se.order_service_1.dto.PaymentRequest;
 import se.order_service_1.exception.OrderCompletedException;
 import se.order_service_1.exception.OrderNotFoundException;
 import se.order_service_1.model.OrderItem;
@@ -10,19 +16,18 @@ import se.order_service_1.model.Order;
 import se.order_service_1.repository.OrderItemRepository;
 import se.order_service_1.repository.OrderRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 
-
+@RequiredArgsConstructor
 @Service
 public class OrderService {
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
-
-    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository) {
-        this.orderRepository = orderRepository;
-        this.orderItemRepository = orderItemRepository;
-    }
+    private final PaymentService paymentService;
+    private final RestTemplate restTemplate;
+    private final String ProductServiceAddress = Dotenv.load().get("PRODUCT_SERVICE_ADDRESS");
 
     public void addOrderItem(Long orderId, Long productId, int quantity) {
         log.debug("addOrderItem - försök lägga till produkt {} (qty={}) till orderId={}",
@@ -31,7 +36,7 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> {
                     log.error("addOrderItem - Order med id={} hittades inte", orderId);
-                    return new RuntimeException("Order not found"); //TODO: byt till orderNotFoundException
+                    return new OrderNotFoundException("Order med ID " + orderId + " finns inte");
                 });
 
         checkNotCompleted(order);
@@ -123,12 +128,75 @@ public class OrderService {
         return order;
     }
 
-    public void finalizeOrder(Long orderId) {
+    /**
+     * Slutför en order genom att behandla betalning och ändra orderstatus
+     * @param orderId ID för ordern som ska slutföras
+     * @param paymentRequest betalningsuppgifter
+     * @return transaktions-ID för betalningen
+     */
+    public String finalizeOrder(Long orderId, PaymentRequest paymentRequest) {
+        log.info("finalizeOrder - försök slutföra order med id={}", orderId);
+
         Order order = getOrderById(orderId);
         checkNotCompleted(order);
+
+        updateProductQuantities(orderId);
+
+        // Beräkna ordersumma
+        Double totalBelopp = calculateOrderTotal(orderId);
+
+        // Uppdatera betalningsbeloppet
+        paymentRequest.setBelopp(totalBelopp);
+
+        // Behandla betalning
+        String transactionId = paymentService.processPayment(paymentRequest);
+
+        // Uppdatera orderstatus
         order.setOrderStatus(Order.OrderStatus.COMPLETED);
         orderRepository.save(order);
-        //TODO: uppdatera ProductService stockQuantity och kolla att stockQuantity inte går under 0
+
+        log.info("finalizeOrder - order {} slutförd med transaktions-ID: {}", orderId, transactionId);
+
+        return transactionId;
+    }
+
+    //Testa att uppdatera Product_Services inventory
+    //If failed throws exception
+    private void updateProductQuantities(Long orderId) {
+        List<PlaceOrderRequest.ProductChange> productChangeList = new ArrayList<>();
+        PlaceOrderRequest.ProductChange productChange;
+        for(OrderItem orderItem : orderItemRepository.findByOrderId(orderId)){
+            productChange = PlaceOrderRequest.ProductChange.builder()
+                    .productId(orderItem.getProductId())
+                    .inventoryChange(-orderItem.getQuantity())
+                    .build();
+            productChangeList.add(productChange);
+        }
+        PlaceOrderRequest placeOrderRequest = new PlaceOrderRequest(productChangeList);
+        String url = ProductServiceAddress + "/product/inventoryManager";
+
+        //Send change to product-service and see if it can be changed
+        ResponseEntity<String> response = restTemplate.postForEntity(url, placeOrderRequest, String.class);
+    }
+
+    /**
+     * Beräknar totalsumman för en order
+     * OBS: I ett riktigt system skulle detta hämta produktpriser från Product Service
+     */
+    private Double calculateOrderTotal(Long orderId) {
+        List<OrderItem> orderItems = getOrderItems(orderId);
+
+        // Låtsas att varje produkt kostar 100 kr
+        // I ett riktigt system skulle vi hämta aktuella priser från Product Service
+        double standardPrisPerProdukt = 100.0;
+
+        double total = orderItems.stream()
+                .mapToDouble(item -> item.getQuantity() * standardPrisPerProdukt)
+                .sum();
+
+        log.debug("calculateOrderTotal - beräknad summa för order {}: {} kr", orderId, total);
+
+        return total;
     }
 
     // Temporär funktion för testning
@@ -145,5 +213,4 @@ public class OrderService {
             throw new OrderCompletedException("Order is completed and can not be changed or cancelled");
         }
     }
-
 }
