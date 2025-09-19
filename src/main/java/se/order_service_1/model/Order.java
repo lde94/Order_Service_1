@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +29,10 @@ public class Order {
     @Enumerated(EnumType.STRING) //Sparar enum som string i databasen istället för index
     @Column(nullable = false)
     private OrderStatus orderStatus;
+
+    @Column
+    private LocalDateTime orderDate;
+
 
 //    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
 //    private List<OrderItem> items = new ArrayList<>();

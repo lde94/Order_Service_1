@@ -5,10 +5,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import se.order_service_1.dto.FinalizeOrderRequest;
-import se.order_service_1.dto.OrderItemRespons;
-import se.order_service_1.dto.OrderRequest;
-import se.order_service_1.dto.OrderResponse;
+import se.order_service_1.dto.*;
 import se.order_service_1.model.Order;
 import se.order_service_1.model.OrderItem;
 import se.order_service_1.service.OrderService;
@@ -31,11 +28,15 @@ public class OrderController {
         return ResponseEntity.ok(orderResponse);
     }
 
-    //TODO skapa en endpoint som returnerar alla ordrar efter ett visst DateTime
     @Operation(summary = "Get order history", description = "Get order history for a specific user by id")
-    @GetMapping("/orderHistory/{userId}")
-    public ResponseEntity<List<OrderResponse>> getOrderHistory(@PathVariable Long userId) {
-        List<Order> orderList = orderService.getOrdersByUser(userId);
+    @PostMapping("/orderHistory")
+    public ResponseEntity<List<OrderResponse>> getOrderHistory(@RequestBody OrderHistoryRequest orderHistoryRequest) {
+        List<Order> orderList;
+        if(orderHistoryRequest.getEarliestOrderDate() == null) {
+             orderList = orderService.getOrdersByUser(orderHistoryRequest.getUserId());
+        } else {
+            orderList = orderService.getOrdersAfterOrderDate(orderHistoryRequest.getUserId(), orderHistoryRequest.getEarliestOrderDate());
+        }
         List<OrderResponse> orderResponseList = new ArrayList<>();
         OrderResponse orderResponse;
         for (Order order : orderList) {
@@ -45,11 +46,10 @@ public class OrderController {
         return ResponseEntity.ok(orderResponseList);
     }
 
-    /*Temporär PostMapping för att testa orderService individuellt */
-    private static long tempUserId = 0L;
+    /*TODO Temporär PostMapping för att testa orderService individuellt */
+    private final static long tempUserId = 1L;
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder() {
-        tempUserId++;
         Order order = orderService.createOrder(tempUserId);
         OrderResponse orderResponse = createOrderResponse(order);
         return ResponseEntity.ok(orderResponse);
@@ -63,7 +63,6 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(createOrderResponse(order));
     }
 
-    //TODO när en order färdigställs så sparas datum och tid i Order
     @Operation(
             summary = "Finalize order",
             description = "Slutför en pågående order genom att behandla betalning och ändra orderstatus"
@@ -111,6 +110,7 @@ public class OrderController {
                 .OrderId(order.getId())
                 .items(orderItemResponsList)
                 .orderStatus(order.getOrderStatus())
+                .orderPlacedDate(order.getOrderDate())
                 .build();
     }
 }

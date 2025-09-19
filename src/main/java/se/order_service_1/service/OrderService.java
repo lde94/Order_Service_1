@@ -16,6 +16,8 @@ import se.order_service_1.model.Order;
 import se.order_service_1.repository.OrderItemRepository;
 import se.order_service_1.repository.OrderRepository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -153,11 +155,16 @@ public class OrderService {
 
         // Uppdatera orderstatus
         order.setOrderStatus(Order.OrderStatus.COMPLETED);
+        order.setOrderDate(LocalDateTime.now());
         orderRepository.save(order);
 
         log.info("finalizeOrder - order {} slutförd med transaktions-ID: {}", orderId, transactionId);
 
         return transactionId;
+    }
+
+    public List<Order> getOrdersAfterOrderDate(Long userId, LocalDateTime orderDate) {
+        return orderRepository.findByUserIdAndOrderDateAfter(userId, orderDate);
     }
 
     //Testa att uppdatera Product_Services inventory
