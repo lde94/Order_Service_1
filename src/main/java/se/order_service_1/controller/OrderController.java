@@ -33,12 +33,18 @@ public class OrderController {
 
     @Operation(summary = "Get order history", description = "Get order history for a specific user by id")
     @PostMapping("/orderHistory")
-    public ResponseEntity<List<OrderResponse>> getOrderHistory(@RequestBody OrderHistoryRequest orderHistoryRequest) {
+    public ResponseEntity<List<OrderResponse>> getOrderHistory(Authentication authentication, @RequestBody OrderHistoryRequest orderHistoryRequest) {
+        // Cast Authentication to JwtAuthenticationToken
+        JwtAuthenticationToken jwtAuth = (JwtAuthenticationToken) authentication;
+        Jwt jwt = jwtAuth.getToken();
+
+        Long userId = jwt.getClaim("id");
+
         List<Order> orderList;
         if(orderHistoryRequest.getEarliestOrderDate() == null) {
-             orderList = orderService.getOrdersByUser(orderHistoryRequest.getUserId());
+             orderList = orderService.getOrdersByUser(userId);
         } else {
-            orderList = orderService.getOrdersAfterOrderDate(orderHistoryRequest.getUserId(), orderHistoryRequest.getEarliestOrderDate());
+            orderList = orderService.getOrdersAfterOrderDate(userId, orderHistoryRequest.getEarliestOrderDate());
         }
         List<OrderResponse> orderResponseList = new ArrayList<>();
         OrderResponse orderResponse;
@@ -118,7 +124,7 @@ public class OrderController {
                 .OrderId(order.getId())
                 .items(orderItemResponsList)
                 .orderStatus(order.getOrderStatus())
-                .orderPlacedDate(order.getOrderDate())
+                .completedAt(order.getOrderDate())
                 .build();
     }
 }
