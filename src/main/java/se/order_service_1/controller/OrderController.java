@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import se.order_service_1.dto.FinalizeOrderRequest;
 import se.order_service_1.dto.OrderItemRespons;
@@ -44,12 +47,16 @@ public class OrderController {
         return ResponseEntity.ok(orderResponseList);
     }
 
-    /*Temporär PostMapping för att testa orderService individuellt */
-    private static long tempUserId = 0L;
     @PostMapping
-    public ResponseEntity<OrderResponse> createOrder() {
-        tempUserId++;
-        Order order = orderService.createOrder(tempUserId);
+    public ResponseEntity<OrderResponse> createOrder(Authentication authentication) {
+
+        // Cast Authentication to JwtAuthenticationToken
+        JwtAuthenticationToken jwtAuth = (JwtAuthenticationToken) authentication;
+        Jwt jwt = jwtAuth.getToken();
+
+        Long id = jwt.getClaim("id");            // custom "id" claim
+
+        Order order = orderService.createOrder(id);
         OrderResponse orderResponse = createOrderResponse(order);
         return ResponseEntity.ok(orderResponse);
     }
