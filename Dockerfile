@@ -24,7 +24,7 @@ RUN apk update && apk upgrade --no-cache && apk add curl
 # Sätt fallback JWT_SECRET och BACKEND_PORT
 ENV JWT_SECRET=dummysecret
 ENV JWT_EXPIRATION=3600000
-ENV BACKEND_PORT=8080
+ENV BACKEND_PORT=8082
 
 # Kopiera jar från build
 COPY --from=build /app/target/*.jar app.jar
@@ -34,7 +34,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
 # Exponera port
-EXPOSE 8080
+EXPOSE 8082
 
 # Starta applikationen
 CMD ["java", "-jar", "/app/app.jar"]
